@@ -1,0 +1,44 @@
+﻿
+    <div class="row" ng-controller="searchController">
+
+        <div class="col-xs-12 col-sm-12 col-md-8">
+            <div class="input-group input-group-sm">
+                <span class="input-group-addon" ><span class="glyphicon glyphicon-search" aria-hidden="true" style="color:#004a80"></span></span>
+                <input id="searchBox" type="text" ng-model="search" class="form-control" placeholder="Search for a book or author..." aria-describedby="sizing-addon1">
+            </div>
+            <br />
+            <table class="table table-bordered table-striped table-responsive">
+                <thead>
+                    <tr>
+                        <td><a href="" ng-click="setOrderBy('Title') ">Title</a></td>
+                        <td><a href="" ng-click="setOrderBy('Author.Name')">Author Name</a> </td>
+                        <td>Quantity Available</td>
+                        <td>Total Quantity</td>
+                        <td>Reserve</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="Book in Books | filter:search | orderBy:order:desc ">
+                        <td>{{Book.Title}}</td>
+                        <td>{{Book.Author.Name}}</td>
+                        <td>{{available=AvailableToReserve(Book)}}</td>
+                         <td>{{Book.BranchBooks.length}}</td>
+                        <td><button id="selectBook" class="btn btn-primary" ng-disabled="available == 0" ng-click="selectBook(Book)">Reserve</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-4">
+            <div id="reservationInfo">
+                <div class="well" ng-show="reservationPane">
+                    <h3>Which branch would you like to reserve from?</h3>
+                    <div ng-show="branchChoices" ng-repeat="Book in Books | where:{ID:SelectedBook.ID}">
+                        <div ng-repeat="BranchBook in Book.BranchBooks | unique:'Branch.ID' | where:{Reservation:NULL}"><strong> {{BranchBook.Branch.Name}} </strong>  (<a href="" ng-click="selectBranch(BranchBook)">Choose This Branch</a>)</div>
+                    </div>
+                    <div ng-show="completeReservationButton"> <button class="btn btn-success" ng-click="completeReservation()">Complete Reservation</button> </div>
+
+                </div>
+            </div>
+            <div ng-if="reservationPane"><a href="" ng-click="cancel()">Cancel</a></div>
+        </div>
+    </div>

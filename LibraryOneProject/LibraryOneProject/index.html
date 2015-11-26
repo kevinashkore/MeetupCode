@@ -1,0 +1,231 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <!--CSS Files-->
+    <link href="Content/bootstrap.css" rel="stylesheet" />
+    <link href="Content/bootstrap-theme.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.css" rel="stylesheet" />
+    <!--Javascript-->
+    <script src="Scripts/jquery-1.9.1.js"></script>
+    <script src="Scripts/bootstrap.js"></script>
+    <script src="Scripts/angular.js"></script>
+    <script src="Scripts/angular-route.js"></script>
+    <script src="Scripts/angular-resource.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-filter/0.5.5/angular-filter.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.js"></script>
+    <title></title>
+    <style type="text/css">
+        ::-ms-clear { display: none; }
+    </style>
+</head>
+<body ng-app="LibraryApp">
+    <nav class="navbar navbar-default">
+        <div class="container">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">Clark County Library Administration</a>
+            </div>
+
+            <!-- Collect the nav links, forms, and other content for toggling -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul id="mainNav" class="nav navbar-nav">
+                    <li><a href="#">Home <span class="sr-only">(current)</span></a></li>
+                    <li><a href="#/Search">Search Books</a></li>
+                    <li><a href="#/Reservations">View Reservations and Checkouts</a></li>
+                    <!--<li><a href="#">Admin</a></li>-->
+                </ul>
+            </div><!-- /.navbar-collapse -->
+        </div><!-- /.container-fluid -->
+    </nav>
+
+    <div class="container" style="padding-top:40px">
+        <div class="row">
+            <div class="col-xs-12 col-sm-12 col-md-12">
+                <p>
+                    Welcome to the Clark County Library Administration System.  You may use this system to search for books, reserve books, and to view your reservations and checkouts.
+                    To get started, use the links at the top nav bar.  If you have questions, please email trash@clarkcountylibrary.com.
+                </p>
+            </div>
+        </div>
+        <!--Inject views here-->
+        <div ng-view></div>
+    </div>
+    <script type="text/javascript">
+        var app = angular.module('LibraryApp', ['ngRoute', 'ngResource', 'angular.filter', 'underscore']);
+
+        //////////    ROUTING    \\\\\\\\\\\\\\\
+
+        app.config(['$routeProvider', function ($routeProvider) {
+            $routeProvider
+                // route for the home page
+                .when('/', {
+                    //controller: 'homeController',
+                    templateUrl: 'Pages/Home.html'
+                })
+                // route for the Search/Reserve page
+                .when('/Search', {
+                    //controller: 'searchBooksController',
+                    templateUrl: 'Pages/Search.html'
+                })
+                //route for the View Reservations page
+                .when('/Reservations', {
+                    //controller: 'ReservationsController',
+                    templateUrl: 'Pages/Reservations.html'
+                })
+                //route for the View Patrons page
+                .when('/Admin', {
+                    //controller: 'adminController',
+                    templateUrl: 'Pages/Admin.html'
+                })
+                .otherwise({ template: "Route not set!" });
+            //TODO: For route testing only - Change otherwise to redirect to homepage//
+        }]);
+
+        ///////////////////    SERVICES    \\\\\\\\\\\\\\\\\\\\\
+
+        var underscore = angular.module('underscore', []);
+        underscore.factory('_', ['$window', function ($window) {
+            return $window._; // assumes underscore has already been loaded on the page
+        }]);
+
+        app.factory('BooksService', ['$resource', function ($resource) {
+            return $resource('/api/Books/:id', //null,
+                { id: '@_id' },
+                { update: { method: 'PUT' } }
+                );
+        }]);
+
+        app.factory('BranchBooksService', ['$resource', function ($resource) {
+            return $resource('/api/BranchBooks/:id', //null,
+                { id: '@_id' },
+                { update: { method: 'PUT' } }
+                );
+        }]);
+
+        app.factory('ReservationsService', ['$resource', function ($resource) {
+            return $resource('/api/Reservations/:id/:patronId', //null,
+                { id: '@_id', patronId: '@_patronId' },
+                {
+                    update: { method: 'PUT' },
+                    getReservationsForUser: {
+                        method: 'GET',
+                        url: '/api/GetReservationsForCurrentUser/:patronId',
+                        isArray: true
+                    }
+                }
+                );
+        }]);
+
+        /////////////////////        CONTROLLERS         \\\\\\\\\\\\\\\
+
+        app.controller('homeController', function ($scope) {
+
+        });
+
+        app.controller('searchController', function ($scope, BooksService, BranchBooksService, ReservationsService, _) {
+
+            //Array of Book Objects: Holds books to loop through
+            $scope.Books = BooksService.query();
+
+            //Reservation Object: Holds reservation info
+            $scope.Reservation = {};
+
+            //Initial ordering by Book Title ascending
+            $scope.order = 'Title';
+            $scope.desc = false;
+            $scope.setOrderBy = function (order) {
+                $scope.order = order;
+                $scope.desc = ($scope.order === order) ? !$scope.desc : false;
+            };
+
+            //Function: Returns number value of BranchBooks not tied to (reserved by) a Patron
+            $scope.AvailableToReserve = function (book) {
+                return _.where(book.BranchBooks, { Reservation: null }).length;
+            };
+
+            //Function: For when user first clicks on Reserve button
+            $scope.selectBook = function (book) {
+                //console.log(book);
+                //TODO: WOuld have to get logged in user's ID
+                if (_.find(book.BranchBooks, function (bb) { return _.isMatch(bb.Reservation, { PatronID: 1 }); })) {
+                    toastr.error('You have already reserved ' + book.Title + '.  Please choose a different book.', 'Error');
+                }
+                else {
+                    $scope.SelectedBook = book;
+                    $scope.reservationPane = true;
+                    $scope.branchChoices = true;
+                }
+
+            };
+
+            //Function: Clears selected book and hides divs
+            $scope.cancel = function () {
+                $scope.SelectedBook = null;
+                $scope.reservationPane = false;
+                $scope.branchChoices = false;
+            };
+
+            //Function: When user clicks "Choose This BRanch", creates the reservation object and shows confirm button
+            $scope.selectBranch = function (branchBook) {
+                //console.log(branchBook);
+
+                $scope.Reservation = { DateReserved: new Date(), BranchBookID: branchBook.ID, PatronID: 1 }
+                $scope.branchChoices = false;
+                $scope.completeReservationButton = true;
+            };
+
+            //Function: Reservation service is called, then queries the database
+            $scope.completeReservation = function () {
+                
+                //console.log($scope.Reservation);
+                ReservationsService.save($scope.Reservation).$promise.then(function (result) {
+                    //console.log(result);
+
+                    toastr.success($scope.SelectedBook.Title + ' has been reserved.', 'Book Reserved');
+                    $scope.completeReservationButton = false;
+                    $scope.reservationPane = false;
+                    //$scope.Books = BooksService.query();
+                    //v.s. below
+                    BooksService.query().$promise.then(function (result) {
+                        $scope.Books = result;
+                    });
+                    
+                }, function (error) {
+                    console.log(error);
+                    toastr.error('There was an error reserving the book.', 'Error');
+                });
+            };
+        });
+
+        app.controller('reservationsController', function ($scope, ReservationsService, _) {
+            //TODO:Make patron ID dynamic
+            var patronId = 1;
+            ReservationsService.getReservationsForUser({ patronId: patronId }).$promise.then(function(result){
+                $scope.Reservations = result;
+            });
+
+            $scope.deleteReservation = function (reservationID) {
+                ReservationsService.delete({ ID: reservationID }).$promise.then(function (result) {
+                    toastr.success("The book was removed from your reservations", "Reservation Removed");
+                    //$scope.Reservations = ReservationsService.getReservationsForUser({ patronId: patronId });
+                    $scope.Reservations = _.reject($scope.Reservations, function (reservation) { return reservation.BranchBookID == reservationID });
+                }, function (error) {
+                    toastr.error('There was an error removing the reservation.', 'Error');
+                });
+            };
+        });
+
+        app.controller('adminController', function ($scope) {
+
+        });
+
+    </script>
+</body>
+</html>

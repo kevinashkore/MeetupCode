@@ -1,0 +1,27 @@
+﻿<div class="row" ng-controller="reservationsController">
+    <div class="col-xs-12 col-sm-12 col-md-8">
+        <table class="table table-bordered table-striped table-responsive">
+            <thead>
+                <tr>
+                    <td>Title</td>
+                    <td>Author Name</td>
+                    <td>Branch</td>
+                    <td>Reserved On</td>
+                    <td>Cancel</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="Reservation in Reservations">
+                    <td>{{Reservation.BranchBook.Book.Title}}</td>
+                    <td>{{Reservation.BranchBook.Book.Author.Name}}</td>
+                    <td>{{Reservation.BranchBook.Branch.Name}}</td>
+                    <td>{{Reservation.DateReserved}}</td>
+                    <td><a href="" ng-click="deleteReservation(Reservation.BranchBookID)">Delete</a></td>
+                </tr>
+            </tbody>
+        </table>
+        <p ng-show="Reservations == 0" style="color:#0094ff">
+            You have no current reservations.
+        </p>
+    </div>
+</div>
